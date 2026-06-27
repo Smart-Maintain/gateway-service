@@ -2,6 +2,8 @@ server:
   port: 8888
 
 spring:
+  codec:
+    max-in-memory-size: 20MB
   application:
     name: gateway-service
   cloud:
@@ -15,6 +17,7 @@ spring:
               - GET
               - POST
               - PUT
+              - PATCH
               - DELETE
               - OPTIONS
       discovery:
