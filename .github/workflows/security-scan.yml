@@ -71,7 +71,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # ==========================================
+   # ==========================================
     # ÉTAPE 3 : LOGINS & BUILD DOCKER SUR GHCR
     # ==========================================
     - name: Connexion à GitHub Container Registry (GHCR)
@@ -82,6 +82,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Passer le nom du dépôt en minuscules (requis pour GHCR)
+      shell: bash
       run: |
         echo "IMAGE_NAME=ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]' >> $GITHUB_ENV
 
