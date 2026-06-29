@@ -4,9 +4,12 @@ on:
   push:
     branches: [ "main", "master" ]
 
+# ========================================================
+# 🔑 CONFIGURATION DES PERMISSIONS
+# ========================================================
 permissions:
   contents: write
-  packages: write
+  packages: write  # Donne l'autorisation essentielle de créer et pousser l'image sur GHCR
   id-token: write
 
 jobs:
@@ -25,7 +28,7 @@ jobs:
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: '21'  # Aligné sur tes versions microservices modernes
         cache: 'maven'
 
     - name: Rendre le wrapper Maven exécutable
@@ -71,7 +74,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ==========================================
+    # ==========================================
     # ÉTAPE 3 : LOGINS & BUILD DOCKER SUR GHCR
     # ==========================================
     - name: Connexion à GitHub Container Registry (GHCR)
@@ -80,6 +83,11 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Compiler l'application Java (Génération du fichier JAR)
+      run: |
+        # Cette étape manquait ! Elle génère le fichier .jar attendu par le Dockerfile
+        ./mvnw clean package -DskipTests || mvn clean package -DskipTests
 
     - name: Construire et Pousser l'image Docker vers GHCR
       run: |
@@ -91,6 +99,7 @@ jobs:
         
         # 3. On pousse l'image sur GHCR
         docker push $IMAGE_NAME:latest
+
     # ==========================================
     # ÉTAPE 4 : SIGNATURE NUMÉRIQUE COSIGN SUR GHCR
     # ==========================================
@@ -99,7 +108,10 @@ jobs:
 
     - name: Signer l'image Docker publiée sur GHCR
       run: |
-        cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ env.IMAGE_NAME }}:latest
+        # Correction : On reconstruit la variable locale de manière robuste
+        IMAGE_NAME=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+        
+        cosign sign --yes --key env://COSIGN_PRIVATE_KEY $IMAGE_NAME:latest
       env:
         COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_KEY }}
         COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
